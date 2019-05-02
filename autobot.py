@@ -81,16 +81,23 @@ def tweet_image(url, message):
         api.update_with_media(filename, status=message)
         os.remove(filename)
 
-for submission in reddit.subreddit('movies').hot(limit=10):
-    thread_created = datetime.utcfromtimestamp(submission.created_utc)
+subs2watch = list()
 
-    if thread_created < getbetweeninterval(5):
-        continue
-    else:
-        image = submission.preview.get("images")[0].get("source").get("url")
+subs2watch.append("movies")
+subs2watch.append("television")
+
+for sub in subs2watch:        
+    for submission in reddit.subreddit(sub).hot(limit=10):
+        thread_created = datetime.utcfromtimestamp(submission.created_utc)
+
+        if thread_created < getbetweeninterval(5):
+            continue
+        else:
+            image = submission.preview.get("images")[0].get("source").get("url")
 
         if "https://i.redd.it" in submission.url:
             text = submission.title + " https://reddit.com" + submission.permalink
         else:
             text = submission.title + " " + submission.url
+        
         tweet_image(image, text)
