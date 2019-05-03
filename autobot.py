@@ -35,15 +35,14 @@ def getbetweeninterval(interval):
 
 def checkfornewtweet(username, interval):
     global alltweets
-    for status in Cursor(api.user_timeline, id=username).items():
+    for status in Cursor(api.user_timeline, id=username, exclude_replies=True).items():
         if status.created_at < getbetweeninterval(interval):
-            break
-        elif hasattr(status, "in_reply_to_user_id"):
             break
         else:
             alltweets.append(status)
-        
+
     return alltweets
+
 
 users2watch = list()
 
@@ -61,7 +60,6 @@ users2watch.append("PrimeVideoDE")
 tweets = list()
 
 for user in users2watch:
-    print(user)
     tweets = checkfornewtweet(user, 5)
     if len(tweets) != 0:
         for tweet in tweets:
@@ -72,13 +70,20 @@ for user in users2watch:
 
 def tweet_image(url, message):
     filename = 'temp.jpg'
-    request = requests.get(url, stream=True)
-    if request.status_code == 200:
-        with open(filename, 'wb') as image:
+
+    if url == "noimage":
+        api.update_status(message)
+    else:
+        request = requests.get(url, stream=True)
+        if request.status_code == 200:
+         with open(filename, 'wb') as image:
             for chunk in request:
                 image.write(chunk)
 
-        api.update_with_media(filename, status=message)
+        if len(message) > 280:
+            api.update_with_media(filename, status=message[:280])
+        else:
+            api.update_with_media(filename, status=message)
         os.remove(filename)
 
 subs2watch = list()
@@ -86,18 +91,49 @@ subs2watch = list()
 subs2watch.append("movies")
 subs2watch.append("television")
 
-for sub in subs2watch:        
-    for submission in reddit.subreddit(sub).hot(limit=10):
+try:
+    os.remove("topposts.tmp")
+except:
+    print("File not found")
+
+for sub in subs2watch:
+    for submission in reddit.subreddit(sub).hot(limit=5):
         thread_created = datetime.utcfromtimestamp(submission.created_utc)
 
-        if thread_created < getbetweeninterval(5):
-            continue
-        else:
-            image = submission.preview.get("images")[0].get("source").get("url")
+        topposts_file = "topposts.tmp"
+        twitter_file = "topposts_sent.tmp"
 
-        if "https://i.redd.it" in submission.url:
-            text = submission.title + " https://reddit.com" + submission.permalink
-        else:
-            text = submission.title + " " + submission.url
-        
-        tweet_image(image, text)
+        open(topposts_file, "a").close()
+        open(twitter_file, "a").close()
+
+        open(topposts_file, "a+").write(submission.id + "\n")
+
+        for line in open(twitter_file, "r+").readlines():
+            if line == "":
+                break
+            if line not in open(topposts_file, "r").read():
+                with open(twitter_file, "r") as f:
+                    lines = f.readlines()
+                with open(twitter_file, "w") as f:
+                    for twitter_line in lines:
+                        if twitter_line.strip("\n") != line:
+                            f.write(twitter_line)
+
+        if submission.id not in open(twitter_file, "r").read():
+            try:
+                image = submission.preview.get("images")[0].get("source").get("url")
+            except:
+                image = "noimage"
+
+            if len(submission.title) < 280:
+                title = submission.title[:200]
+            else:
+                title = submission.title
+
+            if "https://i.redd.it" in submission.url:
+                text = title + " https://reddit.com" + submission.permalink
+            else:
+                text = title + " " + submission.url
+
+            tweet_image(image, text)
+            open(twitter_file, "a+").write(submission.id + "\n")
