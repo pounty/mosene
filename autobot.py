@@ -5,6 +5,7 @@ import os
 import couchdb
 import jsonpickle
 
+from shutil import copyfile
 from datetime import datetime, date, time, timedelta
 from tweepy import Cursor
 
@@ -106,6 +107,11 @@ subs2watch = list()
 subs2watch.append("movies")
 subs2watch.append("television")
 
+exists = os.path.isfile('./topposts_sent.tmp')
+
+if exists:
+    copyfile("topposts.tmp", "topposts_sent.tmp")
+
 try:
     os.remove("topposts.tmp")
 except:
@@ -122,17 +128,6 @@ for sub in subs2watch:
         open(twitter_file, "a").close()
 
         open(topposts_file, "a+").write(submission.id + "\n")
-
-        for line in open(twitter_file, "r+").readlines():
-            if line == "":
-                break
-            if line not in open(topposts_file, "r").read():
-                with open(twitter_file, "r") as f:
-                    lines = f.readlines()
-                with open(twitter_file, "w") as f:
-                    for twitter_line in lines:
-                        if twitter_line.strip("\n") != line:
-                            f.write(twitter_line)
 
         if submission.id not in open(twitter_file, "r").read():
             try:
