@@ -2,6 +2,8 @@ import tweepy
 import praw
 import requests
 import os
+import couchdb
+import jsonpickle
 
 from datetime import datetime, date, time, timedelta
 from tweepy import Cursor
@@ -12,6 +14,18 @@ consumer_secret=""
 
 access_token=""
 access_token_secret=""
+
+# app-auth-couchdb
+
+user = ""
+password = ""
+couchserver = couchdb.Server("http://%s:%s@localhost:5984/" % (user, password))
+dbname = ""
+
+if dbname in couchserver:
+    db = couchserver[dbname]
+else:
+    db = couchserver.create(dbname)
 
 # app-auth-twitter
 
@@ -64,6 +78,7 @@ for user in users2watch:
     if len(tweets) != 0:
         for tweet in tweets:
             api.retweet(tweet.id)
+            doc_id, doc_rev = db.save({'type': 'Tweet', 'name': jsonpickle.encode(tweet)})
         tweets.clear()
 
 # main-app-reddit
@@ -136,4 +151,5 @@ for sub in subs2watch:
                 text = title + " " + submission.url
 
             tweet_image(image, text)
+            doc_id, doc_rev = db.save({'type': 'Reddit', 'name': jsonpickle.encode(submission)})
             open(twitter_file, "a+").write(submission.id + "\n")
