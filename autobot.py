@@ -109,8 +109,11 @@ subs2watch.append("television")
 
 exists = os.path.isfile('./topposts_sent.tmp')
 
-if exists:
-    copyfile("topposts.tmp", "topposts_sent.tmp")
+try:
+    if exists:
+        copyfile("topposts.tmp", "topposts_sent.tmp")
+except:
+    print("Unknown situation")
 
 try:
     os.remove("topposts.tmp")
